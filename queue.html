@@ -358,15 +358,16 @@ document
 
       }
 
-      catch (error) {
+    catch (error) {
 
-        console.error(error);
+  console.error(error);
 
-        setStatus(
-          "Could not connect to the queue system."
-        );
+  setStatus(
+    "ERROR: " +
+    (error.message || error)
+  );
 
-      }
+}
 
     }
   );
