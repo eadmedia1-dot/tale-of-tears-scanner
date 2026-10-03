@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Tale of Tears — Queue Controller</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #aaa;
+      margin-bottom: 25px;
+    }
+
+    .panel {
+      max-width: 700px;
+      margin: 0 auto 20px;
+      background: #1d1d1d;
+      padding: 20px;
+      border-radius: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #aaa;
+      font-weight: bold;
+    }
+
+    select {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      border: none;
+      background: #333;
+      color: white;
+      font-size: 16px;
+    }
+
+    .current {
+      text-align: center;
+      padding: 25px;
+      background: #222;
+      border-radius: 15px;
+      margin-bottom: 20px;
+    }
+
+    .current-ticket {
+      font-size: 48px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+
+    .current-status {
+      color: #aaa;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    button {
+      padding: 18px;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      background: #333;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .primary {
+      background: #8b0000;
+    }
+
+    .danger {
+      background: #550000;
+    }
+
+    .status {
+      text-align: center;
+      padding: 15px;
+      background: #222;
+      border-radius: 10px;
+      color: #aaa;
+    }
+
+    @media (max-width: 500px) {
+
+      .buttons {
+        grid-template-columns: 1fr;
+      }
+
+      .current-ticket {
+        font-size: 38px;
+      }
+
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Tale of Tears</h1>
+
+  <div class="subtitle">
+    Queue Controller
+  </div>
+
+
+  <div class="panel">
+
+    <label for="gender">
+      Active Gender
+    </label>
+
+    <select id="gender">
+      <option value="MALE">Male</option>
+      <option value="FEMALE">Female</option>
+    </select>
+
+
+    <label for="date">
+      Active Date
+    </label>
+
+    <select id="date">
+      <option value="">Select date</option>
+    </select>
+
+
+    <label for="session">
+      Active Time Window
+    </label>
+
+    <select id="session">
+      <option value="">Select time window</option>
+    </select>
+
+  </div>
+
+
+  <div class="panel">
+
+    <div class="current">
+
+      <div class="current-status">
+        CURRENTLY CALLING
+      </div>
+
+      <div
+        class="current-ticket"
+        id="currentTicket"
+      >
+        —
+      </div>
+
+      <div
+        class="current-status"
+        id="currentStatus"
+      >
+        No ticket currently being called
+      </div>
+
+    </div>
+
+
+    <div class="buttons">
+
+      <button
+        class="primary"
+        id="callNext"
+        type="button"
+      >
+        CALL NEXT
+      </button>
+
+      <button
+        class="primary"
+        id="callGroup"
+        type="button"
+      >
+        CALL GROUP
+      </button>
+
+      <button
+        type="button"
+        id="recall"
+      >
+        RECALL
+      </button>
+
+      <button
+        type="button"
+        id="skip"
+      >
+        SKIP
+      </button>
+
+      <button
+        type="button"
+        id="hold"
+      >
+        HOLD
+      </button>
+
+      <button
+        class="danger"
+        type="button"
+        id="stop"
+      >
+        STOP ANNOUNCEMENT
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <div
+    class="status"
+    id="systemStatus"
+  >
+    Queue Controller ready.
+  </div>
+
+
+  <script>
+
+    // ==========================================
+    // YOUR GOOGLE APPS SCRIPT WEB APP URL
+    // ==========================================
+
+    const API_URL =
+      "PASTE_YOUR_WEB_APP_URL_HERE";
+
+
+    // ==========================================
+    // ELEMENTS
+    // ==========================================
+
+    const gender =
+      document.getElementById("gender");
+
+    const date =
+      document.getElementById("date");
+
+    const session =
+      document.getElementById("session");
+
+    const currentTicket =
+      document.getElementById("currentTicket");
+
+    const currentStatus =
+      document.getElementById("currentStatus");
+
+    const systemStatus =
+      document.getElementById("systemStatus");
+
+
+    // ==========================================
+    // STATUS MESSAGE
+    // ==========================================
+
+    function setStatus(message) {
+
+      systemStatus.textContent =
+        message;
+
+    }
+
+
+    // ==========================================
+    // BUTTONS
+    // ==========================================
+
+    document
+      .getElementById("callNext")
+      .addEventListener(
+        "click",
+        function () {
+
+          setStatus(
+            "CALL NEXT selected. Queue logic will be connected next."
+          );
+
+        }
+      );
+
+
+    document
+      .getElementById("callGroup")
+      .addEventListener(
+        "click",
+        function () {
+
+          setStatus(
+            "CALL GROUP selected. Group logic will be connected next."
+          );
+
+        }
+      );
+
+
+    document
+      .getElementById("recall")
+      .addEventListener(
+        "click",
+        function () {
+
+          setStatus(
+            "RECALL selected."
+          );
+
+        }
+      );
+
+
+    document
+      .getElementById("skip")
+      .addEventListener(
+        "click",
+        function () {
+
+          setStatus(
+            "SKIP selected."
+          );
+
+        }
+      );
+
+
+    document
+      .getElementById("hold")
+      .addEventListener(
+        "click",
+        function () {
+
+          setStatus(
+            "Queue placed on HOLD."
+          );
+
+        }
+      );
+
+
+    document
+      .getElementById("stop")
+      .addEventListener(
+        "click",
+        function () {
+
+          setStatus(
+            "Announcement stopped."
+          );
+
+        }
+      );
+
+
+    // ==========================================
+    // ACTIVE SETTINGS
+    // ==========================================
+
+    gender.addEventListener(
+      "change",
+      function () {
+
+        setStatus(
+          "Active gender changed to " +
+          gender.value
+        );
+
+      }
+    );
+
+
+    date.addEventListener(
+      "change",
+      function () {
+
+        setStatus(
+          "Active date selected."
+        );
+
+      }
+    );
+
+
+    session.addEventListener(
+      "change",
+      function () {
+
+        setStatus(
+          "Active time window selected."
+        );
+
+      }
+    );
+
+  </script>
+
+</body>
+</html>
