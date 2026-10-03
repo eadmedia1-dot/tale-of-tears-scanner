@@ -423,102 +423,123 @@
     // QR SCAN
     // =========================
 
-    async function onScanSuccess(
-      decodedText
-    ) {
+   async function onScanSuccess(decodedText) {
 
-      if (!scannerRunning) {
-        return;
-      }
+  if (!scannerRunning) {
+    return;
+  }
 
+  // =========================
+  // READ QR DATA
+  // =========================
 
-      currentTicket =
-        decodedText.trim();
+  const qrData =
+    String(decodedText || "").trim();
 
+  if (!qrData) {
+    return;
+  }
 
-      try {
+  // QR format:
+  // TOTDP-01|MALE
+  // TOTDP-01|FEMALE
 
-        await scanner.stop();
+  let ticket = qrData;
+  let gender = "";
 
-      }
+  if (qrData.includes("|")) {
 
-      catch (error) {
+    const parts =
+      qrData.split("|");
 
-        console.log(error);
+    ticket =
+      String(parts[0] || "")
+        .trim()
+        .toUpperCase();
 
-      }
+    gender =
+      String(parts[1] || "")
+        .trim()
+        .toUpperCase();
 
+  }
 
-      scannerRunning = false;
+  // Keep the complete QR data for check-in
+  currentTicket = qrData;
 
+  try {
 
-      showStatus(
-        "Checking ticket..."
+    await scanner.stop();
+
+  }
+
+  catch (error) {
+
+    console.log(error);
+
+  }
+
+  scannerRunning = false;
+
+  showStatus(
+    "Checking ticket..."
+  );
+
+  try {
+
+    const response =
+      await fetch(
+
+        API_URL +
+        "?action=lookupTicket" +
+        "&ticket=" +
+        encodeURIComponent(ticket) +
+        "&gender=" +
+        encodeURIComponent(gender)
+
       );
 
+    const data =
+      await response.json();
 
-      try {
+    if (!data.success) {
 
-        const response =
-          await fetch(
+      showStatus(
+        data.message ||
+        "Ticket not found.",
+        "error"
+      );
 
-            API_URL +
-            "?action=lookupTicket&ticket=" +
-            encodeURIComponent(
-              currentTicket
-            )
+      document.getElementById(
+        "result"
+      ).style.display =
+        "none";
 
-          );
+      document.getElementById(
+        "scanAgain"
+      ).style.display =
+        "block";
 
-
-        const data =
-          await response.json();
-
-
-        if (!data.success) {
-
-          showStatus(
-            data.message ||
-            "Ticket not found.",
-            "error"
-          );
-
-
-          document.getElementById(
-            "result"
-          ).style.display =
-            "none";
-
-
-          document.getElementById(
-            "scanAgain"
-          ).style.display =
-            "block";
-
-
-          return;
-
-        }
-
-
-        showTicket(data);
-
-      }
-
-
-      catch (error) {
-
-        console.error(error);
-
-        showStatus(
-          "Could not connect to the ticket system.",
-          "error"
-        );
-
-      }
+      return;
 
     }
 
+    showTicket(data);
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    showStatus(
+      "Could not connect to the ticket system.",
+      "error"
+    );
+
+  }
+
+}
 
     function onScanFailure(error) {
       // Ignore normal QR scanning failures.
