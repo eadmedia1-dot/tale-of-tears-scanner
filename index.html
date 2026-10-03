@@ -1,31 +1,31 @@
 ```html
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Tale Of Tears Scanner</title>
+  <title>Tale of Tears Scanner</title>
 
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
-      text-align: center;
+    * {
+      box-sizing: border-box;
     }
 
-    .container {
-      max-width: 500px;
-      margin: auto;
+    body {
+      margin: 0;
       padding: 20px;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
     }
 
     h1 {
       margin-bottom: 5px;
+      color: #fff;
     }
 
     .subtitle {
@@ -35,440 +35,882 @@
 
     #reader {
       width: 100%;
-      max-width: 400px;
-      margin: auto;
-      background: #222;
-      border-radius: 12px;
+      max-width: 500px;
+      margin: 0 auto;
+      border-radius: 15px;
       overflow: hidden;
+      background: #000;
     }
 
-    .status {
-      margin: 20px 0;
-      padding: 12px;
-      border-radius: 8px;
+    #reader video {
+      width: 100% !important;
+      height: auto !important;
+      border-radius: 15px;
+    }
+
+    .zoom-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      margin: 18px auto;
+    }
+
+    .zoom-controls button {
+      width: 64px;
+      height: 64px;
+      padding: 0;
+      margin: 0;
+      border: none;
+      border-radius: 50%;
+      background: #333;
+      color: white;
+      font-size: 36px;
+      font-weight: bold;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .zoom-controls button:active {
+      transform: scale(0.94);
+    }
+
+    .zoom-label {
+      min-width: 55px;
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    #status {
+      max-width: 500px;
+      margin: 20px auto;
+      padding: 15px;
       background: #222;
+      border-radius: 10px;
+      color: #ddd;
     }
 
-    .result {
+    #result {
       display: none;
-      background: #1d1d1d;
+      max-width: 500px;
+      margin: 20px auto;
       padding: 20px;
-      border-radius: 12px;
-      margin-top: 20px;
+      background: #1d1d1d;
+      border-radius: 15px;
       text-align: left;
     }
 
-    .result p {
+    .result-row {
       margin: 10px 0;
+      font-size: 18px;
     }
 
-    .label {
+    .result-label {
       color: #aaa;
     }
 
-    button {
+    .result-value {
+      font-weight: bold;
+      color: white;
+    }
+
+    button.action {
       width: 100%;
-      padding: 15px;
+      padding: 16px;
       margin-top: 12px;
       border: none;
-      border-radius: 8px;
-      font-size: 16px;
+      border-radius: 10px;
+      background: #8b0000;
+      color: white;
+      font-size: 18px;
       font-weight: bold;
       cursor: pointer;
     }
 
-    #checkInButton {
-      background: #b00020;
-      color: white;
+    button.action:active {
+      transform: scale(0.98);
     }
 
-    #scanAgainButton {
+    #scanAgain {
+      display: none;
       background: #333;
-      color: white;
     }
 
-    button:disabled {
-      opacity: 0.5;
+    .error {
+      color: #ff7777;
+    }
+
+    .success {
+      color: #72ff72;
     }
   </style>
 </head>
 
 <body>
 
-<div class="container">
-
-  <h1>Tale Of Tears</h1>
-  <div class="subtitle">QR Check-In Scanner</div>
+  <h1>Tale of Tears</h1>
+  <div class="subtitle">Ticket Scanner</div>
 
   <div id="reader"></div>
 
-  <div id="status" class="status">
+  <!-- ZOOM CONTROLS -->
+  <div class="zoom-controls">
+    <button type="button" onclick="changeZoom(-1)">−</button>
+
+    <div class="zoom-label" id="zoomLabel">1.0×</div>
+
+    <button type="button" onclick="changeZoom(1)">+</button>
+  </div>
+
+  <div id="status">
     Starting camera...
   </div>
 
-  <div id="result" class="result">
+  <div id="result">
 
-    <p>
-      <span class="label">Ticket:</span>
-      <strong id="ticket"></strong>
-    </p>
+    <div class="result-row">
+      <span class="result-label">Ticket:</span>
+      <span class="result-value" id="ticket"></span>
+    </div>
 
-    <p>
-      <span class="label">Name:</span>
-      <strong id="name"></strong>
-    </p>
+    <div class="result-row">
+      <span class="result-label">Name:</span>
+      <span class="result-value" id="name"></span>
+    </div>
 
-    <p>
-      <span class="label">Gender:</span>
-      <strong id="gender"></strong>
-    </p>
+    <div class="result-row">
+      <span class="result-label">Gender:</span>
+      <span class="result-value" id="gender"></span>
+    </div>
 
-    <p>
-      <span class="label">Priority:</span>
-      <strong id="priority"></strong>
-    </p>
+    <div class="result-row">
+      <span class="result-label">Priority:</span>
+      <span class="result-value" id="priority"></span>
+    </div>
 
-    <p>
-      <span class="label">Payment:</span>
-      <strong id="payment"></strong>
-    </p>
+    <div class="result-row">
+      <span class="result-label">Payment:</span>
+      <span class="result-value" id="payment"></span>
+    </div>
 
-    <button id="checkInButton" onclick="checkIn()">
+    <button
+      type="button"
+      class="action"
+      id="checkInButton"
+      onclick="checkIn()"
+    >
       CHECK IN
     </button>
 
-    <button id="scanAgainButton" onclick="scanAgain()">
+    <button
+      type="button"
+      class="action"
+      id="scanAgain"
+      onclick="scanAgain()"
+    >
       SCAN AGAIN
     </button>
 
   </div>
 
-</div>
+  <script>
 
-<script>
+    /*
+      IMPORTANT:
+      Keep your existing Apps Script Web App URL here.
+      It should end with /exec
+    */
 
-  /*
-   * =====================================================
-   * TALE OF TEARS — BACKEND URL
-   * =====================================================
-   *
-   * Paste your Apps Script Web App URL between the quotes.
-   *
-   * Example:
-   *
-   * const API_URL =
-   * "https://script.google.com/macros/s/XXXXXXXX/exec";
-   *
-   */
-
-  const API_URL = "https://script.google.com/macros/s/AKfycbyjn5HxMjXtZ1BF1n_5HGYfqohKPeEKZf_TWXusGdbrtOpmcOPFVyEZKiA0NVy0Ylug/exec";
+    const API_URL =
+      "https://script.google.com/macros/s/AKfycbyjn5HxMjXtZ1BF1n_5HGYfqohKPeEKZf_TWXusGdbrtOpmcOPFVyEZKiA0NVy0Ylug/exec";
 
 
-  let scanner = null;
-  let currentTicket = "";
-  let currentData = null;
-  let scannerRunning = false;
+    let scanner;
+    let scannerRunning = false;
+    let currentTicket = "";
+
+    // -------------------------
+    // ZOOM VARIABLES
+    // -------------------------
+
+    let currentZoom = 1;
+    let minZoom = 1;
+    let maxZoom = 1;
+    let zoomStep = 0.5;
+    let videoTrack = null;
 
 
-  function showStatus(message) {
-    document.getElementById("status").textContent = message;
-  }
+    // -------------------------
+    // STATUS
+    // -------------------------
+
+    function showStatus(message, type = "") {
+
+      const status =
+        document.getElementById("status");
+
+      status.textContent = message;
+
+      status.className = type;
+
+    }
 
 
-  async function startScanner() {
+    // -------------------------
+    // START SCANNER
+    // -------------------------
 
-    try {
+    async function startScanner() {
 
-      showStatus("Requesting camera access...");
+      try {
 
-      if (!navigator.mediaDevices ||
-          !navigator.mediaDevices.getUserMedia) {
+        showStatus("Starting camera...");
 
-        throw new Error(
-          "Camera access is not supported by this browser."
+        // Ask for camera permission first
+        const stream =
+          await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: {
+                ideal: "environment"
+              }
+            }
+          });
+
+        // Stop temporary permission stream
+        stream.getTracks().forEach(
+          track => track.stop()
         );
 
-      }
 
-      /*
-       * Request camera permission.
-       */
+        scanner =
+          new Html5Qrcode("reader");
 
-      const stream =
-        await navigator.mediaDevices.getUserMedia({
-          video: {
+
+        const config = {
+          fps: 10,
+
+          qrbox: {
+            width: 250,
+            height: 250
+          },
+
+          aspectRatio: 1.0
+        };
+
+
+        await scanner.start(
+
+          {
             facingMode: {
               ideal: "environment"
             }
           },
-          audio: false
-        });
 
-      /*
-       * Stop temporary permission stream.
-       */
+          config,
 
-      stream.getTracks().forEach(track => track.stop());
+          onScanSuccess,
+
+          onScanFailure
+
+        );
 
 
-      /*
-       * Start QR scanner.
-       */
+        scannerRunning = true;
 
-      scanner = new Html5Qrcode("reader");
+        showStatus(
+          "Camera ready — scan a QR code."
+        );
 
-      await scanner.start(
 
-        {
-          facingMode: "environment"
-        },
+        // Give the camera a moment to load,
+        // then detect native zoom support.
+        setTimeout(
+          setupCameraZoom,
+          1000
+        );
 
-        {
-          fps: 10,
-          qrbox: {
-            width: 250,
-            height: 250
-          }
-        },
 
-        onScanSuccess,
+      } catch (error) {
 
-        () => {}
+        console.error(error);
 
-      );
+        showStatus(
+          "Camera error: " + error.message,
+          "error"
+        );
 
-      scannerRunning = true;
-
-      showStatus("Camera ready — scan a QR code.");
+      }
 
     }
 
-    catch (error) {
 
-      console.error(error);
+    // -------------------------
+    // QR SCAN
+    // -------------------------
 
-      showStatus(
-        "Camera could not start: " +
-        error.message
-      );
+    async function onScanSuccess(decodedText) {
 
-    }
+      if (!scannerRunning) {
+        return;
+      }
 
-  }
+      currentTicket =
+        decodedText.trim();
 
-
-  async function onScanSuccess(decodedText) {
-
-    if (!decodedText) return;
-
-    if (scannerRunning) {
 
       try {
+
         await scanner.stop();
+
+      } catch (error) {
+
+        console.log(error);
+
       }
 
-      catch (error) {
-        console.log(error);
-      }
 
       scannerRunning = false;
 
-    }
-
-
-    currentTicket =
-      decodedText.trim();
-
-    showStatus(
-      "Checking ticket " +
-      currentTicket +
-      "..."
-    );
-
-
-    /*
-     * Send ticket to Apps Script.
-     */
-
-    try {
-
-      const response = await fetch(
-        API_URL +
-        "?action=lookupTicket&ticket=" +
-        encodeURIComponent(currentTicket)
-      );
-
-      const data =
-        await response.json();
-
-      showTicket(data);
-
-    }
-
-    catch (error) {
-
-      console.error(error);
 
       showStatus(
-        "Could not connect to the Tale Of Tears system."
+        "Checking ticket..."
       );
 
-    }
 
-  }
+      try {
 
-
-  function showTicket(data) {
-
-    currentData = data;
-
-    if (!data || !data.success) {
-
-      showStatus(
-        data && data.message
-          ? data.message
-          : "Ticket not found."
-      );
-
-      document.getElementById("result")
-        .style.display = "none";
-
-      return;
-
-    }
+        const response =
+          await fetch(
+            API_URL +
+            "?action=lookupTicket&ticket=" +
+            encodeURIComponent(
+              currentTicket
+            )
+          );
 
 
-    document.getElementById("ticket")
-      .textContent = data.ticket || "";
-
-    document.getElementById("name")
-      .textContent = data.name || "";
-
-    document.getElementById("gender")
-      .textContent = data.gender || "";
-
-    document.getElementById("priority")
-      .textContent = data.priority || "";
-
-    document.getElementById("payment")
-      .textContent = data.paymentStatus || "";
+        const data =
+          await response.json();
 
 
-    document.getElementById("result")
-      .style.display = "block";
+        if (!data.success) {
+
+          showStatus(
+            data.message ||
+            "Ticket not found.",
+            "error"
+          );
+
+          document.getElementById(
+            "result"
+          ).style.display = "none";
 
 
-    showStatus(
-      "Ticket found — ready for check-in."
-    );
-
-  }
+          document.getElementById(
+            "scanAgain"
+          ).style.display = "block";
 
 
-  async function checkIn() {
-
-    if (!currentTicket) {
-
-      showStatus("No ticket selected.");
-
-      return;
-
-    }
+          return;
+        }
 
 
-    const button =
-      document.getElementById("checkInButton");
-
-    button.disabled = true;
-
-    button.textContent = "CHECKING IN...";
+        showTicket(data);
 
 
-    try {
+      } catch (error) {
 
-      const response = await fetch(
-        API_URL +
-        "?action=checkInTicket&ticket=" +
-        encodeURIComponent(currentTicket)
-      );
-
-      const data =
-        await response.json();
-
-
-      if (data.success) {
+        console.error(error);
 
         showStatus(
-          data.message ||
-          "CHECK-IN SUCCESSFUL"
+          "Could not connect to the ticket system.",
+          "error"
         );
-
-        button.textContent =
-          "CHECK-IN COMPLETE";
 
       }
 
-      else {
+    }
 
-        showStatus(
-          data.message ||
-          "CHECK-IN BLOCKED"
+
+    function onScanFailure(error) {
+
+      // Normal scanning failures are ignored.
+      // QR scanner keeps looking.
+
+    }
+
+
+    // -------------------------
+    // SHOW TICKET
+    // -------------------------
+
+    function showTicket(data) {
+
+      document.getElementById(
+        "result"
+      ).style.display = "block";
+
+
+      document.getElementById(
+        "ticket"
+      ).textContent =
+        data.ticket || "";
+
+
+      document.getElementById(
+        "name"
+      ).textContent =
+        data.name || "";
+
+
+      document.getElementById(
+        "gender"
+      ).textContent =
+        data.gender || "";
+
+
+      document.getElementById(
+        "priority"
+      ).textContent =
+        data.priority || "";
+
+
+      document.getElementById(
+        "payment"
+      ).textContent =
+        data.paymentStatus || "";
+
+
+      const checkInButton =
+        document.getElementById(
+          "checkInButton"
         );
 
-        button.disabled = false;
+
+      const scanAgainButton =
+        document.getElementById(
+          "scanAgain"
+        );
+
+
+      checkInButton.style.display =
+        "block";
+
+      scanAgainButton.style.display =
+        "block";
+
+
+      showStatus(
+        "Ticket found. Check payment and press CHECK IN."
+      );
+
+    }
+
+
+    // -------------------------
+    // CHECK IN
+    // -------------------------
+
+    async function checkIn() {
+
+      if (!currentTicket) {
+
+        showStatus(
+          "No ticket selected.",
+          "error"
+        );
+
+        return;
+
+      }
+
+
+      const button =
+        document.getElementById(
+          "checkInButton"
+        );
+
+
+      button.disabled = true;
+
+      button.textContent =
+        "CHECKING IN...";
+
+
+      try {
+
+        const response =
+          await fetch(
+            API_URL +
+            "?action=checkInTicket&ticket=" +
+            encodeURIComponent(
+              currentTicket
+            )
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (data.success) {
+
+          showStatus(
+            data.message ||
+            "CHECK-IN SUCCESSFUL",
+            "success"
+          );
+
+
+          button.textContent =
+            "CHECK-IN SUCCESSFUL";
+
+
+          button.disabled = true;
+
+
+        } else {
+
+          showStatus(
+            data.message ||
+            "Check-in failed.",
+            "error"
+          );
+
+
+          button.textContent =
+            "CHECK IN";
+
+
+          button.disabled = false;
+
+        }
+
+
+      } catch (error) {
+
+        console.error(error);
+
+
+        showStatus(
+          "Could not connect to the ticket system.",
+          "error"
+        );
+
 
         button.textContent =
           "CHECK IN";
 
+
+        button.disabled = false;
+
       }
 
     }
 
-    catch (error) {
 
-      console.error(error);
+    // -------------------------
+    // SCAN AGAIN
+    // -------------------------
 
-      showStatus(
-        "Could not connect to the Tale Of Tears system."
-      );
+    async function scanAgain() {
+
+      currentTicket = "";
+
+
+      document.getElementById(
+        "result"
+      ).style.display = "none";
+
+
+      const button =
+        document.getElementById(
+          "checkInButton"
+        );
+
 
       button.disabled = false;
 
       button.textContent =
         "CHECK IN";
 
+
+      document.getElementById(
+        "scanAgain"
+      ).style.display = "none";
+
+
+      showStatus(
+        "Starting scanner..."
+      );
+
+
+      await startScanner();
+
     }
 
-  }
+
+    // -------------------------
+    // CAMERA ZOOM SETUP
+    // -------------------------
+
+    async function setupCameraZoom() {
+
+      try {
+
+        const video =
+          document.querySelector(
+            "#reader video"
+          );
 
 
-  async function scanAgain() {
+        if (!video || !video.srcObject) {
 
-    currentTicket = "";
-    currentData = null;
+          return;
 
-    document.getElementById("result")
-      .style.display = "none";
-
-    document.getElementById("checkInButton")
-      .disabled = false;
-
-    document.getElementById("checkInButton")
-      .textContent = "CHECK IN";
-
-    showStatus("Starting camera...");
-
-    await startScanner();
-
-  }
+        }
 
 
-  window.addEventListener(
-    "load",
-    startScanner
-  );
+        const tracks =
+          video.srcObject.getVideoTracks();
 
-</script>
+
+        if (!tracks.length) {
+
+          return;
+
+        }
+
+
+        videoTrack =
+          tracks[0];
+
+
+        const capabilities =
+          videoTrack.getCapabilities();
+
+
+        /*
+          If the phone camera supports
+          native zoom, use it.
+        */
+
+        if (
+          capabilities &&
+          capabilities.zoom
+        ) {
+
+          minZoom =
+            capabilities.zoom.min;
+
+          maxZoom =
+            capabilities.zoom.max;
+
+
+          currentZoom =
+            Math.max(
+              minZoom,
+              Math.min(
+                1,
+                maxZoom
+              )
+            );
+
+
+          if (
+            currentZoom <
+            minZoom
+          ) {
+
+            currentZoom =
+              minZoom;
+
+          }
+
+
+          zoomStep =
+            capabilities.zoom.step ||
+            0.5;
+
+
+          await videoTrack.applyConstraints({
+
+            advanced: [
+              {
+                zoom: currentZoom
+              }
+            ]
+
+          });
+
+
+          updateZoomLabel();
+
+
+        } else {
+
+          /*
+            If native zoom is not available,
+            use digital CSS zoom.
+          */
+
+          minZoom = 1;
+
+          maxZoom = 3;
+
+          currentZoom = 1;
+
+          zoomStep = 0.5;
+
+          updateZoomLabel();
+
+        }
+
+
+      } catch (error) {
+
+        console.log(
+          "Native camera zoom unavailable:",
+          error
+        );
+
+      }
+
+    }
+
+
+    // -------------------------
+    // CHANGE ZOOM
+    // -------------------------
+
+    async function changeZoom(direction) {
+
+      const newZoom =
+        currentZoom +
+        (
+          direction *
+          zoomStep
+        );
+
+
+      currentZoom =
+        Math.max(
+          minZoom,
+          Math.min(
+            maxZoom,
+            newZoom
+          )
+        );
+
+
+      updateZoomLabel();
+
+
+      /*
+        Try real camera zoom first.
+      */
+
+      if (videoTrack) {
+
+        try {
+
+          const capabilities =
+            videoTrack.getCapabilities();
+
+
+          if (
+            capabilities &&
+            capabilities.zoom
+          ) {
+
+            await videoTrack.applyConstraints({
+
+              advanced: [
+                {
+                  zoom: currentZoom
+                }
+              ]
+
+            });
+
+
+            return;
+
+          }
+
+        } catch (error) {
+
+          console.log(
+            "Native zoom failed:",
+            error
+          );
+
+        }
+
+      }
+
+
+      /*
+        Fallback:
+        digitally zoom the video.
+      */
+
+      const video =
+        document.querySelector(
+          "#reader video"
+        );
+
+
+      if (video) {
+
+        video.style.transform =
+          `scale(${currentZoom})`;
+
+        video.style.transformOrigin =
+          "center center";
+
+      }
+
+    }
+
+
+    // -------------------------
+    // ZOOM LABEL
+    // -------------------------
+
+    function updateZoomLabel() {
+
+      const label =
+        document.getElementById(
+          "zoomLabel"
+        );
+
+
+      if (!label) {
+
+        return;
+
+      }
+
+
+      label.textContent =
+        currentZoom.toFixed(1) +
+        "×";
+
+    }
+
+
+    // -------------------------
+    // START WHEN PAGE LOADS
+    // -------------------------
+
+    window.addEventListener(
+      "load",
+      startScanner
+    );
+
+  </script>
 
 </body>
 </html>
