@@ -25,7 +25,6 @@
 
     h1 {
       margin-bottom: 5px;
-      color: #fff;
     }
 
     .subtitle {
@@ -48,39 +47,60 @@
       border-radius: 15px;
     }
 
+    /* ZOOM */
+
+    .zoom-box {
+      width: 100%;
+      max-width: 500px;
+      margin: 15px auto;
+      padding: 12px;
+      background: #222;
+      border-radius: 15px;
+      border: 2px solid #444;
+    }
+
+    .zoom-title {
+      font-size: 15px;
+      color: #aaa;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
     .zoom-controls {
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 20px;
-      margin: 18px auto;
+      gap: 30px;
     }
 
-    .zoom-controls button {
-      width: 64px;
-      height: 64px;
-      padding: 0;
-      margin: 0;
+    .zoom-button {
+      width: 80px;
+      height: 70px;
       border: none;
-      border-radius: 50%;
-      background: #333;
+      border-radius: 14px;
+      background: #8b0000;
       color: white;
-      font-size: 36px;
+      font-size: 42px;
       font-weight: bold;
-      line-height: 1;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
     }
 
-    .zoom-controls button:active {
-      transform: scale(0.94);
+    .zoom-button:active {
+      transform: scale(0.92);
     }
 
     .zoom-label {
-      min-width: 55px;
-      font-size: 20px;
+      min-width: 70px;
+      font-size: 22px;
       font-weight: bold;
-      text-align: center;
+      color: white;
     }
+
+    /* STATUS */
 
     #status {
       max-width: 500px;
@@ -90,6 +110,16 @@
       border-radius: 10px;
       color: #ddd;
     }
+
+    .error {
+      color: #ff7777;
+    }
+
+    .success {
+      color: #72ff72;
+    }
+
+    /* RESULT */
 
     #result {
       display: none;
@@ -128,21 +158,9 @@
       cursor: pointer;
     }
 
-    button.action:active {
-      transform: scale(0.98);
-    }
-
     #scanAgain {
       display: none;
       background: #333;
-    }
-
-    .error {
-      color: #ff7777;
-    }
-
-    .success {
-      color: #72ff72;
     }
   </style>
 </head>
@@ -150,17 +168,48 @@
 <body>
 
   <h1>Tale of Tears</h1>
-  <div class="subtitle">Ticket Scanner</div>
+
+  <div class="subtitle">
+    Ticket Scanner
+  </div>
 
   <div id="reader"></div>
 
-  <!-- ZOOM CONTROLS -->
-  <div class="zoom-controls">
-    <button type="button" onclick="changeZoom(-1)">−</button>
+  <!-- ZOOM BUTTONS -->
 
-    <div class="zoom-label" id="zoomLabel">1.0×</div>
+  <div class="zoom-box">
 
-    <button type="button" onclick="changeZoom(1)">+</button>
+    <div class="zoom-title">
+      CAMERA ZOOM
+    </div>
+
+    <div class="zoom-controls">
+
+      <button
+        type="button"
+        class="zoom-button"
+        onclick="changeZoom(-1)"
+      >
+        −
+      </button>
+
+      <div
+        class="zoom-label"
+        id="zoomLabel"
+      >
+        1.0×
+      </div>
+
+      <button
+        type="button"
+        class="zoom-button"
+        onclick="changeZoom(1)"
+      >
+        +
+      </button>
+
+    </div>
+
   </div>
 
   <div id="status">
@@ -214,12 +263,11 @@
 
   </div>
 
+
   <script>
 
     /*
-      IMPORTANT:
-      Keep your existing Apps Script Web App URL here.
-      It should end with /exec
+      KEEP YOUR EXISTING APPS SCRIPT /exec URL HERE
     */
 
     const API_URL =
@@ -230,20 +278,16 @@
     let scannerRunning = false;
     let currentTicket = "";
 
-    // -------------------------
     // ZOOM VARIABLES
-    // -------------------------
 
     let currentZoom = 1;
     let minZoom = 1;
-    let maxZoom = 1;
+    let maxZoom = 3;
     let zoomStep = 0.5;
     let videoTrack = null;
 
 
-    // -------------------------
     // STATUS
-    // -------------------------
 
     function showStatus(message, type = "") {
 
@@ -257,9 +301,7 @@
     }
 
 
-    // -------------------------
     // START SCANNER
-    // -------------------------
 
     async function startScanner() {
 
@@ -267,20 +309,25 @@
 
         showStatus("Starting camera...");
 
-        // Ask for camera permission first
+
+        /*
+          SIMPLE CAMERA REQUEST
+          This is the important fix.
+        */
+
         const stream =
           await navigator.mediaDevices.getUserMedia({
+
             video: {
-              facingMode: {
-                ideal: "environment"
-              }
+              facingMode: "environment"
             }
+
           });
 
-        // Stop temporary permission stream
-        stream.getTracks().forEach(
-          track => track.stop()
-        );
+
+        stream
+          .getTracks()
+          .forEach(track => track.stop());
 
 
         scanner =
@@ -288,6 +335,7 @@
 
 
         const config = {
+
           fps: 10,
 
           qrbox: {
@@ -296,16 +344,13 @@
           },
 
           aspectRatio: 1.0
+
         };
 
 
         await scanner.start(
 
-          {
-            facingMode: {
-              ideal: "environment"
-            }
-          },
+          "environment",
 
           config,
 
@@ -318,46 +363,58 @@
 
         scannerRunning = true;
 
+
         showStatus(
           "Camera ready — scan a QR code."
         );
 
 
-        // Give the camera a moment to load,
-        // then detect native zoom support.
+        /*
+          Set up zoom after camera appears.
+        */
+
         setTimeout(
           setupCameraZoom,
-          1000
+          1500
+        );
+
+      }
+
+
+      catch (error) {
+
+        console.error(
+          "FULL CAMERA ERROR:",
+          error
         );
 
 
-      } catch (error) {
+        showStatus(
 
-        console.error(error);
+          "Camera error: " +
+          (
+            error?.message ||
+            error?.name ||
+            JSON.stringify(error)
+          ),
 
-        
-showStatus(
-  "Camera error: " +
-  (error?.message || error?.name || JSON.stringify(error)),
-  "error"
-);
+          "error"
 
-console.error("FULL CAMERA ERROR:", error);
+        );
 
       }
 
     }
 
 
-    // -------------------------
     // QR SCAN
-    // -------------------------
 
     async function onScanSuccess(decodedText) {
 
       if (!scannerRunning) {
         return;
       }
+
 
       currentTicket =
         decodedText.trim();
@@ -367,7 +424,9 @@ console.error("FULL CAMERA ERROR:", error);
 
         await scanner.stop();
 
-      } catch (error) {
+      }
+
+      catch (error) {
 
         console.log(error);
 
@@ -386,11 +445,13 @@ console.error("FULL CAMERA ERROR:", error);
 
         const response =
           await fetch(
+
             API_URL +
             "?action=lookupTicket&ticket=" +
             encodeURIComponent(
               currentTicket
             )
+
           );
 
 
@@ -406,6 +467,7 @@ console.error("FULL CAMERA ERROR:", error);
             "error"
           );
 
+
           document.getElementById(
             "result"
           ).style.display = "none";
@@ -417,13 +479,16 @@ console.error("FULL CAMERA ERROR:", error);
 
 
           return;
+
         }
 
 
         showTicket(data);
 
+      }
 
-      } catch (error) {
+
+      catch (error) {
 
         console.error(error);
 
@@ -438,16 +503,11 @@ console.error("FULL CAMERA ERROR:", error);
 
 
     function onScanFailure(error) {
-
-      // Normal scanning failures are ignored.
-      // QR scanner keeps looking.
-
+      // Normal QR scanning failures are ignored.
     }
 
 
-    // -------------------------
     // SHOW TICKET
-    // -------------------------
 
     function showTicket(data) {
 
@@ -486,22 +546,9 @@ console.error("FULL CAMERA ERROR:", error);
         data.paymentStatus || "";
 
 
-      const checkInButton =
-        document.getElementById(
-          "checkInButton"
-        );
-
-
-      const scanAgainButton =
-        document.getElementById(
-          "scanAgain"
-        );
-
-
-      checkInButton.style.display =
-        "block";
-
-      scanAgainButton.style.display =
+      document.getElementById(
+        "scanAgain"
+      ).style.display =
         "block";
 
 
@@ -512,9 +559,7 @@ console.error("FULL CAMERA ERROR:", error);
     }
 
 
-    // -------------------------
     // CHECK IN
-    // -------------------------
 
     async function checkIn() {
 
@@ -546,11 +591,13 @@ console.error("FULL CAMERA ERROR:", error);
 
         const response =
           await fetch(
+
             API_URL +
             "?action=checkInTicket&ticket=" +
             encodeURIComponent(
               currentTicket
             )
+
           );
 
 
@@ -570,11 +617,9 @@ console.error("FULL CAMERA ERROR:", error);
           button.textContent =
             "CHECK-IN SUCCESSFUL";
 
+        }
 
-          button.disabled = true;
-
-
-        } else {
+        else {
 
           showStatus(
             data.message ||
@@ -591,8 +636,10 @@ console.error("FULL CAMERA ERROR:", error);
 
         }
 
+      }
 
-      } catch (error) {
+
+      catch (error) {
 
         console.error(error);
 
@@ -614,9 +661,7 @@ console.error("FULL CAMERA ERROR:", error);
     }
 
 
-    // -------------------------
     // SCAN AGAIN
-    // -------------------------
 
     async function scanAgain() {
 
@@ -625,7 +670,8 @@ console.error("FULL CAMERA ERROR:", error);
 
       document.getElementById(
         "result"
-      ).style.display = "none";
+      ).style.display =
+        "none";
 
 
       const button =
@@ -642,7 +688,8 @@ console.error("FULL CAMERA ERROR:", error);
 
       document.getElementById(
         "scanAgain"
-      ).style.display = "none";
+      ).style.display =
+        "none";
 
 
       showStatus(
@@ -655,9 +702,7 @@ console.error("FULL CAMERA ERROR:", error);
     }
 
 
-    // -------------------------
     // CAMERA ZOOM SETUP
-    // -------------------------
 
     async function setupCameraZoom() {
 
@@ -669,7 +714,22 @@ console.error("FULL CAMERA ERROR:", error);
           );
 
 
-        if (!video || !video.srcObject) {
+        if (!video) {
+
+          console.log(
+            "Video not found yet."
+          );
+
+          return;
+
+        }
+
+
+        if (!video.srcObject) {
+
+          console.log(
+            "Video stream not ready yet."
+          );
 
           return;
 
@@ -677,7 +737,8 @@ console.error("FULL CAMERA ERROR:", error);
 
 
         const tracks =
-          video.srcObject.getVideoTracks();
+          video.srcObject
+            .getVideoTracks();
 
 
         if (!tracks.length) {
@@ -695,11 +756,6 @@ console.error("FULL CAMERA ERROR:", error);
           videoTrack.getCapabilities();
 
 
-        /*
-          If the phone camera supports
-          native zoom, use it.
-        */
-
         if (
           capabilities &&
           capabilities.zoom
@@ -712,6 +768,11 @@ console.error("FULL CAMERA ERROR:", error);
             capabilities.zoom.max;
 
 
+          zoomStep =
+            capabilities.zoom.step ||
+            0.5;
+
+
           currentZoom =
             Math.max(
               minZoom,
@@ -720,22 +781,6 @@ console.error("FULL CAMERA ERROR:", error);
                 maxZoom
               )
             );
-
-
-          if (
-            currentZoom <
-            minZoom
-          ) {
-
-            currentZoom =
-              minZoom;
-
-          }
-
-
-          zoomStep =
-            capabilities.zoom.step ||
-            0.5;
 
 
           await videoTrack.applyConstraints({
@@ -751,31 +796,30 @@ console.error("FULL CAMERA ERROR:", error);
 
           updateZoomLabel();
 
+        }
 
-        } else {
+        else {
 
           /*
-            If native zoom is not available,
-            use digital CSS zoom.
+            Native zoom unavailable.
+            Digital zoom fallback.
           */
 
           minZoom = 1;
-
           maxZoom = 3;
-
-          currentZoom = 1;
-
           zoomStep = 0.5;
+          currentZoom = 1;
 
           updateZoomLabel();
 
         }
 
+      }
 
-      } catch (error) {
+      catch (error) {
 
         console.log(
-          "Native camera zoom unavailable:",
+          "Zoom setup error:",
           error
         );
 
@@ -784,9 +828,7 @@ console.error("FULL CAMERA ERROR:", error);
     }
 
 
-    // -------------------------
     // CHANGE ZOOM
-    // -------------------------
 
     async function changeZoom(direction) {
 
@@ -843,7 +885,9 @@ console.error("FULL CAMERA ERROR:", error);
 
           }
 
-        } catch (error) {
+        }
+
+        catch (error) {
 
           console.log(
             "Native zoom failed:",
@@ -856,8 +900,7 @@ console.error("FULL CAMERA ERROR:", error);
 
 
       /*
-        Fallback:
-        digitally zoom the video.
+        Digital zoom fallback.
       */
 
       const video =
@@ -871,6 +914,7 @@ console.error("FULL CAMERA ERROR:", error);
         video.style.transform =
           `scale(${currentZoom})`;
 
+
         video.style.transformOrigin =
           "center center";
 
@@ -879,9 +923,7 @@ console.error("FULL CAMERA ERROR:", error);
     }
 
 
-    // -------------------------
     // ZOOM LABEL
-    // -------------------------
 
     function updateZoomLabel() {
 
@@ -892,9 +934,7 @@ console.error("FULL CAMERA ERROR:", error);
 
 
       if (!label) {
-
         return;
-
       }
 
 
@@ -905,9 +945,7 @@ console.error("FULL CAMERA ERROR:", error);
     }
 
 
-    // -------------------------
-    // START WHEN PAGE LOADS
-    // -------------------------
+    // PAGE LOAD
 
     window.addEventListener(
       "load",
