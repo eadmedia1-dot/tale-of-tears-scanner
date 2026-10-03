@@ -300,19 +300,76 @@
     // BUTTONS
     // ==========================================
 
-    document
-      .getElementById("callNext")
-      .addEventListener(
-        "click",
-        function () {
+   
+document
+  .getElementById("callNext")
+  .addEventListener(
+    "click",
+    async function () {
 
-          setStatus(
-            "CALL NEXT selected. Queue logic will be connected next."
-          );
+      const selectedGender =
+        document
+          .getElementById("gender")
+          .value;
 
-        }
+      setStatus(
+        "Finding next " +
+        selectedGender.toLowerCase() +
+        " ticket..."
       );
 
+      try {
+
+        const response =
+          await fetch(
+            API_URL +
+            "?action=callNextTicket&gender=" +
+            encodeURIComponent(
+              selectedGender
+            )
+          );
+
+        const data =
+          await response.json();
+
+        if (!data.success) {
+
+          setStatus(
+            data.message ||
+            "No ticket available."
+          );
+
+          return;
+        }
+
+        currentTicket.textContent =
+          data.ticket || "—";
+
+        currentStatus.textContent =
+          data.name +
+          " — " +
+          data.priority;
+
+        setStatus(
+          "Ticket " +
+          data.ticket +
+          " is now being called."
+        );
+
+      }
+
+      catch (error) {
+
+        console.error(error);
+
+        setStatus(
+          "Could not connect to the queue system."
+        );
+
+      }
+
+    }
+  );
 
     document
       .getElementById("callGroup")
