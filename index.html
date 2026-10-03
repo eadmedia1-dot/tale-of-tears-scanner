@@ -335,10 +335,14 @@
 
         console.error(error);
 
-        showStatus(
-          "Camera error: " + error.message,
-          "error"
-        );
+        
+showStatus(
+  "Camera error: " +
+  (error?.message || error?.name || JSON.stringify(error)),
+  "error"
+);
+
+console.error("FULL CAMERA ERROR:", error);
 
       }
 
