@@ -1,0 +1,475 @@
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Tale Of Tears Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      color: #aaa;
+      margin-bottom: 20px;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 400px;
+      margin: auto;
+      background: #222;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .status {
+      margin: 20px 0;
+      padding: 12px;
+      border-radius: 8px;
+      background: #222;
+    }
+
+    .result {
+      display: none;
+      background: #1d1d1d;
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    .result p {
+      margin: 10px 0;
+    }
+
+    .label {
+      color: #aaa;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      margin-top: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #checkInButton {
+      background: #b00020;
+      color: white;
+    }
+
+    #scanAgainButton {
+      background: #333;
+      color: white;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>Tale Of Tears</h1>
+  <div class="subtitle">QR Check-In Scanner</div>
+
+  <div id="reader"></div>
+
+  <div id="status" class="status">
+    Starting camera...
+  </div>
+
+  <div id="result" class="result">
+
+    <p>
+      <span class="label">Ticket:</span>
+      <strong id="ticket"></strong>
+    </p>
+
+    <p>
+      <span class="label">Name:</span>
+      <strong id="name"></strong>
+    </p>
+
+    <p>
+      <span class="label">Gender:</span>
+      <strong id="gender"></strong>
+    </p>
+
+    <p>
+      <span class="label">Priority:</span>
+      <strong id="priority"></strong>
+    </p>
+
+    <p>
+      <span class="label">Payment:</span>
+      <strong id="payment"></strong>
+    </p>
+
+    <button id="checkInButton" onclick="checkIn()">
+      CHECK IN
+    </button>
+
+    <button id="scanAgainButton" onclick="scanAgain()">
+      SCAN AGAIN
+    </button>
+
+  </div>
+
+</div>
+
+<script>
+
+  /*
+   * =====================================================
+   * TALE OF TEARS — BACKEND URL
+   * =====================================================
+   *
+   * Paste your Apps Script Web App URL between the quotes.
+   *
+   * Example:
+   *
+   * const API_URL =
+   * "https://script.google.com/macros/s/XXXXXXXX/exec";
+   *
+   */
+
+  const API_URL = "https://script.google.com/macros/s/AKfycbyjn5HxMjXtZ1BF1n_5HGYfqohKPeEKZf_TWXusGdbrtOpmcOPFVyEZKiA0NVy0Ylug/exec";
+
+
+  let scanner = null;
+  let currentTicket = "";
+  let currentData = null;
+  let scannerRunning = false;
+
+
+  function showStatus(message) {
+    document.getElementById("status").textContent = message;
+  }
+
+
+  async function startScanner() {
+
+    try {
+
+      showStatus("Requesting camera access...");
+
+      if (!navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia) {
+
+        throw new Error(
+          "Camera access is not supported by this browser."
+        );
+
+      }
+
+      /*
+       * Request camera permission.
+       */
+
+      const stream =
+        await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: {
+              ideal: "environment"
+            }
+          },
+          audio: false
+        });
+
+      /*
+       * Stop temporary permission stream.
+       */
+
+      stream.getTracks().forEach(track => track.stop());
+
+
+      /*
+       * Start QR scanner.
+       */
+
+      scanner = new Html5Qrcode("reader");
+
+      await scanner.start(
+
+        {
+          facingMode: "environment"
+        },
+
+        {
+          fps: 10,
+          qrbox: {
+            width: 250,
+            height: 250
+          }
+        },
+
+        onScanSuccess,
+
+        () => {}
+
+      );
+
+      scannerRunning = true;
+
+      showStatus("Camera ready — scan a QR code.");
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      showStatus(
+        "Camera could not start: " +
+        error.message
+      );
+
+    }
+
+  }
+
+
+  async function onScanSuccess(decodedText) {
+
+    if (!decodedText) return;
+
+    if (scannerRunning) {
+
+      try {
+        await scanner.stop();
+      }
+
+      catch (error) {
+        console.log(error);
+      }
+
+      scannerRunning = false;
+
+    }
+
+
+    currentTicket =
+      decodedText.trim();
+
+    showStatus(
+      "Checking ticket " +
+      currentTicket +
+      "..."
+    );
+
+
+    /*
+     * Send ticket to Apps Script.
+     */
+
+    try {
+
+      const response = await fetch(
+        API_URL +
+        "?action=lookupTicket&ticket=" +
+        encodeURIComponent(currentTicket)
+      );
+
+      const data =
+        await response.json();
+
+      showTicket(data);
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      showStatus(
+        "Could not connect to the Tale Of Tears system."
+      );
+
+    }
+
+  }
+
+
+  function showTicket(data) {
+
+    currentData = data;
+
+    if (!data || !data.success) {
+
+      showStatus(
+        data && data.message
+          ? data.message
+          : "Ticket not found."
+      );
+
+      document.getElementById("result")
+        .style.display = "none";
+
+      return;
+
+    }
+
+
+    document.getElementById("ticket")
+      .textContent = data.ticket || "";
+
+    document.getElementById("name")
+      .textContent = data.name || "";
+
+    document.getElementById("gender")
+      .textContent = data.gender || "";
+
+    document.getElementById("priority")
+      .textContent = data.priority || "";
+
+    document.getElementById("payment")
+      .textContent = data.paymentStatus || "";
+
+
+    document.getElementById("result")
+      .style.display = "block";
+
+
+    showStatus(
+      "Ticket found — ready for check-in."
+    );
+
+  }
+
+
+  async function checkIn() {
+
+    if (!currentTicket) {
+
+      showStatus("No ticket selected.");
+
+      return;
+
+    }
+
+
+    const button =
+      document.getElementById("checkInButton");
+
+    button.disabled = true;
+
+    button.textContent = "CHECKING IN...";
+
+
+    try {
+
+      const response = await fetch(
+        API_URL +
+        "?action=checkInTicket&ticket=" +
+        encodeURIComponent(currentTicket)
+      );
+
+      const data =
+        await response.json();
+
+
+      if (data.success) {
+
+        showStatus(
+          data.message ||
+          "CHECK-IN SUCCESSFUL"
+        );
+
+        button.textContent =
+          "CHECK-IN COMPLETE";
+
+      }
+
+      else {
+
+        showStatus(
+          data.message ||
+          "CHECK-IN BLOCKED"
+        );
+
+        button.disabled = false;
+
+        button.textContent =
+          "CHECK IN";
+
+      }
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      showStatus(
+        "Could not connect to the Tale Of Tears system."
+      );
+
+      button.disabled = false;
+
+      button.textContent =
+        "CHECK IN";
+
+    }
+
+  }
+
+
+  async function scanAgain() {
+
+    currentTicket = "";
+    currentData = null;
+
+    document.getElementById("result")
+      .style.display = "none";
+
+    document.getElementById("checkInButton")
+      .disabled = false;
+
+    document.getElementById("checkInButton")
+      .textContent = "CHECK IN";
+
+    showStatus("Starting camera...");
+
+    await startScanner();
+
+  }
+
+
+  window.addEventListener(
+    "load",
+    startScanner
+  );
+
+</script>
+
+</body>
+</html>
+```
