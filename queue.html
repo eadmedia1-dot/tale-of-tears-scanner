@@ -135,7 +135,6 @@
 
   <div class="panel">
 
-```
 <label for="gender">
   Active Gender
 </label>
@@ -160,13 +159,13 @@
 <select id="session">
   <option value="">Select time window</option>
 </select>
-```
+
 
   </div>
 
   <div class="panel">
 
-```
+
 <div class="current">
 
   <div class="current-status">
@@ -237,7 +236,7 @@
   </button>
 
 </div>
-```
+
 
   </div>
 
@@ -332,7 +331,41 @@
 
     }
 
+// ==========================================
+// CALL GROUP
+// ==========================================
 
+async function callGroupTickets(genderValue) {
+
+  const url =
+    API_URL +
+    "?action=callGroupTickets" +
+    "&gender=" +
+    encodeURIComponent(genderValue);
+
+  const response =
+    await fetch(
+      url,
+      {
+        method: "GET",
+        redirect: "follow"
+      }
+    );
+
+  if (!response.ok) {
+
+    throw new Error(
+      "Queue system returned HTTP " +
+      response.status
+    );
+
+  }
+
+  const data =
+    await response.json();
+
+  return data;
+}
     // ==========================================
     // CALL NEXT BUTTON
     // ==========================================
@@ -418,19 +451,69 @@
     // ==========================================
     // OTHER BUTTONS
     // ==========================================
+document
+  .getElementById("callGroup")
+  .addEventListener(
+    "click",
+    async function() {
 
-    document
-      .getElementById("callGroup")
-      .addEventListener(
-        "click",
-        function() {
+      const selectedGender =
+        gender.value;
 
-          setStatus(
-            "CALL GROUP selected. Group logic will be connected next."
+      setStatus(
+        "Calling group for " +
+        selectedGender.toLowerCase() +
+        "..."
+      );
+
+      try {
+
+        const data =
+          await callGroupTickets(
+            selectedGender
           );
 
+        if (!data.success) {
+
+          setStatus(
+            data.message ||
+            "No group available."
+          );
+
+          return;
+
         }
-      );
+
+        currentTicket.textContent =
+          data.tickets.join(", ");
+
+        currentStatus.textContent =
+          data.group +
+          " — " +
+          data.groupSize +
+          " tickets";
+
+        setStatus(
+          data.group +
+          " called successfully."
+        );
+
+      }
+
+      catch (error) {
+
+        console.error(error);
+
+        setStatus(
+          error.message ||
+          "Could not connect to the queue system."
+        );
+
+      }
+
+    }
+  );
+  
 
 
     document
