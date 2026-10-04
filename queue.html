@@ -320,14 +320,16 @@ document
 
       try {
 
-        const response =
-          await fetch(
-            API_URL +
-            "?action=callNextTicket&gender=" +
-            encodeURIComponent(
-              selectedGender
-            )
-          );
+     const response =
+  await fetch(
+    API_URL +
+    "?action=callNextTicket&gender=" +
+    encodeURIComponent(selectedGender),
+    {
+      method: "GET",
+      redirect: "follow"
+    }
+  );
 
         const data =
           await response.json();
