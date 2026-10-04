@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -112,7 +113,6 @@
     }
 
     @media (max-width: 500px) {
-
       .buttons {
         grid-template-columns: 1fr;
       }
@@ -120,9 +120,9 @@
       .current-ticket {
         font-size: 38px;
       }
-
     }
   </style>
+
 </head>
 
 <body>
@@ -135,105 +135,109 @@
 
   <div class="panel">
 
-    <label for="gender">
-      Active Gender
-    </label>
+```
+<label for="gender">
+  Active Gender
+</label>
 
-    <select id="gender">
-      <option value="MALE">Male</option>
-      <option value="FEMALE">Female</option>
-    </select>
+<select id="gender">
+  <option value="MALE">Male</option>
+  <option value="FEMALE">Female</option>
+</select>
 
-    <label for="date">
-      Active Date
-    </label>
+<label for="date">
+  Active Date
+</label>
 
-    <select id="date">
-      <option value="">Select date</option>
-    </select>
+<select id="date">
+  <option value="">Select date</option>
+</select>
 
-    <label for="session">
-      Active Time Window
-    </label>
+<label for="session">
+  Active Time Window
+</label>
 
-    <select id="session">
-      <option value="">Select time window</option>
-    </select>
+<select id="session">
+  <option value="">Select time window</option>
+</select>
+```
 
   </div>
 
   <div class="panel">
 
-    <div class="current">
+```
+<div class="current">
 
-      <div class="current-status">
-        CURRENTLY CALLING
-      </div>
+  <div class="current-status">
+    CURRENTLY CALLING
+  </div>
 
-      <div
-        class="current-ticket"
-        id="currentTicket"
-      >
-        —
-      </div>
+  <div
+    class="current-ticket"
+    id="currentTicket"
+  >
+    —
+  </div>
 
-      <div
-        class="current-status"
-        id="currentStatus"
-      >
-        No ticket currently being called
-      </div>
+  <div
+    class="current-status"
+    id="currentStatus"
+  >
+    No ticket currently being called
+  </div>
 
-    </div>
+</div>
 
-    <div class="buttons">
+<div class="buttons">
 
-      <button
-        class="primary"
-        id="callNext"
-        type="button"
-      >
-        CALL NEXT
-      </button>
+  <button
+    class="primary"
+    id="callNext"
+    type="button"
+  >
+    CALL NEXT
+  </button>
 
-      <button
-        class="primary"
-        id="callGroup"
-        type="button"
-      >
-        CALL GROUP
-      </button>
+  <button
+    class="primary"
+    id="callGroup"
+    type="button"
+  >
+    CALL GROUP
+  </button>
 
-      <button
-        type="button"
-        id="recall"
-      >
-        RECALL
-      </button>
+  <button
+    type="button"
+    id="recall"
+  >
+    RECALL
+  </button>
 
-      <button
-        type="button"
-        id="skip"
-      >
-        SKIP
-      </button>
+  <button
+    type="button"
+    id="skip"
+  >
+    SKIP
+  </button>
 
-      <button
-        type="button"
-        id="hold"
-      >
-        HOLD
-      </button>
+  <button
+    type="button"
+    id="hold"
+  >
+    HOLD
+  </button>
 
-      <button
-        class="danger"
-        type="button"
-        id="stop"
-      >
-        STOP ANNOUNCEMENT
-      </button>
+  <button
+    class="danger"
+    type="button"
+    id="stop"
+  >
+    STOP ANNOUNCEMENT
+  </button>
 
-    </div>
+</div>
+```
 
   </div>
 
@@ -243,7 +247,6 @@
   >
     Queue Controller ready.
   </div>
-
 
   <script>
 
@@ -291,124 +294,47 @@
 
 
     // ==========================================
-    // JSONP REQUEST
+    // CALL NEXT TICKET
     // ==========================================
 
-    function callNextTicket(genderValue) {
+    async function callNextTicket(genderValue) {
 
-      return new Promise(
-        function(resolve, reject) {
+      const url =
+        API_URL +
+        "?action=callNextTicket" +
+        "&gender=" +
+        encodeURIComponent(
+          genderValue
+        );
 
-          const callbackName =
-            "queueCallback_" +
-            Date.now() +
-            "_" +
-            Math.floor(
-              Math.random() * 100000
-            );
-
-          const script =
-            document.createElement("script");
-
-          let finished = false;
-
-
-          window[callbackName] =
-            function(data) {
-
-              finished = true;
-
-              cleanup();
-
-              resolve(data);
-
-            };
-
-
-          function cleanup() {
-
-            if (script.parentNode) {
-              script.parentNode.removeChild(script);
-            }
-
-            try {
-              delete window[callbackName];
-            }
-
-            catch (error) {
-              window[callbackName] = undefined;
-            }
-
+      const response =
+        await fetch(
+          url,
+          {
+            method: "GET",
+            redirect: "follow"
           }
+        );
 
+      if (!response.ok) {
 
-          script.onerror =
-            function() {
+        throw new Error(
+          "Queue system returned HTTP " +
+          response.status
+        );
 
-              if (finished) {
-                return;
-              }
+      }
 
-              finished = true;
+      const data =
+        await response.json();
 
-              cleanup();
-
-              reject(
-                new Error(
-                  "Could not connect to the queue system."
-                )
-              );
-
-            };
-
-
-          script.src =
-            API_URL +
-            "?action=callNextTicket" +
-            "&gender=" +
-            encodeURIComponent(
-              genderValue
-            ) +
-            "&callback=" +
-            encodeURIComponent(
-              callbackName
-            );
-
-
-          document
-            .body
-            .appendChild(script);
-
-
-          setTimeout(
-            function() {
-
-              if (finished) {
-                return;
-              }
-
-              finished = true;
-
-              cleanup();
-
-              reject(
-                new Error(
-                  "Queue system timed out."
-                )
-              );
-
-            },
-            15000
-          );
-
-        }
-      );
+      return data;
 
     }
 
 
     // ==========================================
-    // CALL NEXT
+    // CALL NEXT BUTTON
     // ==========================================
 
     document
@@ -435,6 +361,10 @@
               );
 
 
+            // ------------------------------
+            // NO TICKET
+            // ------------------------------
+
             if (!data.success) {
 
               setStatus(
@@ -443,8 +373,13 @@
               );
 
               return;
+
             }
 
+
+            // ------------------------------
+            // TICKET FOUND
+            // ------------------------------
 
             currentTicket.textContent =
               data.ticket || "—";
